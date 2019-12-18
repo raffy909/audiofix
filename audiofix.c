@@ -19,6 +19,8 @@
 
 #define EXT_SPEAKER_SWITCH_CTRL     "Ext_Speaker_Amp_Switch"
 #define EXT_HEADPHONE_SWITCH_CTRL   "Ext_Headphone_Amp_Switch"
+#define AUDIO_AMP_R_SWITCH			"Audio_Amp_R_Switch"
+#define AUDIO_AMP_L_SWITCH			"Audio_Amp_L_Switch" 
 
 #define ON  1
 #define OFF 0
@@ -81,12 +83,16 @@ void UpdateAudioInterface(int h2wStatefd)
     if (state > 0)
     {
         ALOGI("Headphones connected\n");
+        setControl(AUDIO_AMP_R_SWITCH, ON);
+        setControl(AUDIO_AMP_L_SWITCH, ON);
         setControl(EXT_SPEAKER_SWITCH_CTRL, OFF);
         setControl(EXT_HEADPHONE_SWITCH_CTRL, ON);
     }
     else
     {
         ALOGI("Headphones disconnected\n");
+        setControl(AUDIO_AMP_R_SWITCH, ON);
+        setControl(AUDIO_AMP_L_SWITCH, ON);
         setControl(EXT_HEADPHONE_SWITCH_CTRL, OFF);
         setControl(EXT_SPEAKER_SWITCH_CTRL, ON);
     }
