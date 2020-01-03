@@ -19,12 +19,12 @@
 
 #define EXT_SPEAKER_SWITCH_CTRL     "Ext_Speaker_Amp_Switch"
 #define EXT_HEADPHONE_SWITCH_CTRL   "Ext_Headphone_Amp_Switch"
-#define AUDIO_I2S0DL1_HD_SWITCH		"Audio_I2S0dl1_hd_Switch"
+#define AUDIO_I2S0DL1_HD_SWITCH     "Audio_I2S0dl1_hd_Switch"
 
-#define ON  1
+#define ON 1
 #define OFF 0
 
-typedef struct 
+typedef struct
 {
     const char *action;
     const char *path;
@@ -47,7 +47,7 @@ void setALSAControlValue(char *name, int value)
     if (mixer1 == NULL)
     {
         ALOGE("Failed opening mixer on card %d", CARD_NUM);
-		return;
+        return;
     }
 
     ctl = mixer_get_ctl_by_name(mixer1, name);
@@ -61,19 +61,20 @@ void setALSAControlValue(char *name, int value)
     {
         ALOGE("Filed to set value %s", name);
     }
-    
+
     mixer_close(mixer1);
 }
 
-int getALSAControlValue(char *name) {
-	struct mixer *mixer1;
+int getALSAControlValue(char *name)
+{
+    struct mixer *mixer1;
     struct mixer_ctl *ctl;
 
     mixer1 = mixer_open(CARD_NUM);
     if (mixer1 == NULL)
     {
         ALOGE("Failed opening mixer on card");
-		return -1;
+        return -1;
     }
 
     ctl = mixer_get_ctl_by_name(mixer1, name);
@@ -86,7 +87,7 @@ int getALSAControlValue(char *name) {
     int val = mixer_ctl_get_value(ctl, 0);
     ALOGD("Value for %s: %d", name, val);
     mixer_close(mixer1);
-    
+
     return val;
 }
 
@@ -230,9 +231,10 @@ int main()
             ParseEvent(msg, &evt);
             if (strcmp(evt.action, "change") == 0 && strcmp(evt.path, "/devices/virtual/switch/h2w") == 0)
             {
-				if(getALSAControlValue(AUDIO_I2S0DL1_HD_SWITCH) == 1){
-					UpdateAudioInterface(h2wStatefd);
-				}
+                if (getALSAControlValue(AUDIO_I2S0DL1_HD_SWITCH) == 1)
+                {
+                    UpdateAudioInterface(h2wStatefd);
+                }
             }
         }
     }
