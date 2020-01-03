@@ -19,8 +19,7 @@
 
 #define EXT_SPEAKER_SWITCH_CTRL     "Ext_Speaker_Amp_Switch"
 #define EXT_HEADPHONE_SWITCH_CTRL   "Ext_Headphone_Amp_Switch"
-#define AUDIO_AMP_R_SWITCH			"Audio_Amp_R_Switch"
-#define AUDIO_AMP_L_SWITCH			"Audio_Amp_L_Switch" 
+#define AUDIO_I2S0DL1_HD_SWITCH		"Audio_I2S0dl1_hd_Switch"
 
 #define ON  1
 #define OFF 0
@@ -39,7 +38,7 @@ typedef struct
     int minor;
 } Uevent_t;
 
-void setControl(char *name, int value)
+void setALSAControlValue(char *name, int value)
 {
     struct mixer *mixer1;
     struct mixer_ctl *ctl;
@@ -47,23 +46,48 @@ void setControl(char *name, int value)
     mixer1 = mixer_open(CARD_NUM);
     if (mixer1 == NULL)
     {
-        ALOGE("Failed opening mixer on card");
+        ALOGE("Failed opening mixer on card %d", CARD_NUM);
 		return;
     }
 
     ctl = mixer_get_ctl_by_name(mixer1, name);
     if (ctl == NULL)
     {
-        ALOGE("Failed to access control");
+        ALOGE("Failed to access control %s", name);
         return;
     }
 
     if (mixer_ctl_set_value(ctl, 0, value) != 0)
     {
-        perror("Filed to set value");
+        ALOGE("Filed to set value %s", name);
     }
+    
+    mixer_close(mixer1);
+}
+
+int getALSAControlValue(char *name) {
+	struct mixer *mixer1;
+    struct mixer_ctl *ctl;
+
+    mixer1 = mixer_open(CARD_NUM);
+    if (mixer1 == NULL)
+    {
+        ALOGE("Failed opening mixer on card");
+		return -1;
+    }
+
+    ctl = mixer_get_ctl_by_name(mixer1, name);
+    if (ctl == NULL)
+    {
+        ALOGE("Failed to access control");
+        return -1;
+    }
+
     int val = mixer_ctl_get_value(ctl, 0);
-    ALOGD("Value for %s is %d \n", name, val);
+    ALOGD("Value for %s: %d", name, val);
+    mixer_close(mixer1);
+    
+    return val;
 }
 
 int readH2wState(int fd)
@@ -82,19 +106,15 @@ void UpdateAudioInterface(int h2wStatefd)
     int state = readH2wState(h2wStatefd);
     if (state > 0)
     {
-        ALOGI("Headphones connected\n");
-        setControl(AUDIO_AMP_R_SWITCH, ON);
-        setControl(AUDIO_AMP_L_SWITCH, ON);
-        setControl(EXT_SPEAKER_SWITCH_CTRL, OFF);
-        setControl(EXT_HEADPHONE_SWITCH_CTRL, ON);
+        ALOGI("Switching to headphones\n");
+        setALSAControlValue(EXT_SPEAKER_SWITCH_CTRL, OFF);
+        setALSAControlValue(EXT_HEADPHONE_SWITCH_CTRL, ON);
     }
     else
     {
-        ALOGI("Headphones disconnected\n");
-        setControl(AUDIO_AMP_R_SWITCH, ON);
-        setControl(AUDIO_AMP_L_SWITCH, ON);
-        setControl(EXT_HEADPHONE_SWITCH_CTRL, OFF);
-        setControl(EXT_SPEAKER_SWITCH_CTRL, ON);
+        ALOGI("Switching to speakers\n");
+        setALSAControlValue(EXT_HEADPHONE_SWITCH_CTRL, OFF);
+        setALSAControlValue(EXT_SPEAKER_SWITCH_CTRL, ON);
     }
 }
 
@@ -196,11 +216,9 @@ int main()
     pfd.fd = ufd;
     pfd.events = POLLIN;
 
-    UpdateAudioInterface(h2wStatefd);
-    
     while (1)
     {
-        int nr = poll(&pfd, 1, 100);
+        int nr = poll(&pfd, 1, -1);
         if (nr == 0)
             continue;
         if (nr < 0)
@@ -212,7 +230,9 @@ int main()
             ParseEvent(msg, &evt);
             if (strcmp(evt.action, "change") == 0 && strcmp(evt.path, "/devices/virtual/switch/h2w") == 0)
             {
-                UpdateAudioInterface(h2wStatefd);
+				if(getALSAControlValue(AUDIO_I2S0DL1_HD_SWITCH) == 1){
+					UpdateAudioInterface(h2wStatefd);
+				}
             }
         }
     }
